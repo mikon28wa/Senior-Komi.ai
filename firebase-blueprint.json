@@ -1,0 +1,132 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Core profile data for the senior.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "role": { "type": "string", "enum": ["senior", "caregiver", "relative", "admin"] },
+        "birthDate": { "type": "string", "format": "date" },
+        "preferences": { "type": "object" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "role", "createdAt"]
+    },
+    "Contact": {
+      "title": "Contact",
+      "description": "Phonebook entry.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "relationship": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "address": { "type": "string" },
+        "notes": { "type": "string" },
+        "isFavorite": { "type": "boolean" },
+        "isEmergency": { "type": "boolean" },
+        "ownerId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "phone", "ownerId", "createdAt"]
+    },
+    "Reminder": {
+      "title": "Reminder",
+      "description": "A scheduled event, task, or appointment.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "type": { "type": "string", "enum": ["medication", "appointment", "task"] },
+        "reference_id": { "type": "string" },
+        "priority": { "type": "string", "enum": ["low", "normal", "high", "emergency"] },
+        "status": { "type": "string", "enum": ["pending", "completed", "skipped", "overdue"] },
+        "scheduled_time": { "type": "string", "format": "date-time" },
+        "repeat_rule": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "type", "scheduled_time", "status", "ownerId", "created_at"]
+    },
+    "Medication": {
+      "title": "Medication",
+      "description": "Medication schedule entry.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "dosage": { "type": "string" },
+        "frequency": { "type": "string" },
+        "times": { "type": "array", "items": { "type": "string" } },
+        "days": { "type": "array", "items": { "type": "number" } },
+        "notes": { "type": "string" },
+        "active": { "type": "boolean" },
+        "ownerId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "dosage", "times", "ownerId", "createdAt"]
+    },
+    "MedicationLog": {
+      "title": "Medication Log",
+      "description": "Tracking actual medication intake with German status labels.",
+      "type": "object",
+      "properties": {
+        "medication_id": { "type": "string" },
+        "medication_name": { "type": "string" },
+        "scheduled_time": { "type": "string", "format": "date-time" },
+        "taken_time": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["genommen", "offen", "verpasst", "verschoben"] },
+        "comment": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "created_at": { "type": "string", "format": "date-time" }
+      },
+      "required": ["medication_id", "status", "ownerId", "created_at"]
+    },
+    "AuditLog": {
+      "title": "Audit Log",
+      "description": "System-wide tracking of changes.",
+      "type": "object",
+      "properties": {
+        "action": { "type": "string" },
+        "entityType": { "type": "string" },
+        "entityId": { "type": "string" },
+        "details": { "type": "object" },
+        "ownerId": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["action", "ownerId", "timestamp"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "User profile document."
+    },
+    "users/{userId}/contacts/{contactId}": {
+      "schema": "Contact",
+      "description": "Personal phonebook contacts."
+    },
+    "users/{userId}/reminders/{reminderId}": {
+      "schema": "Reminder",
+      "description": "General reminders and tasks."
+    },
+    "users/{userId}/memory/{entryId}": {
+      "schema": "MemoryEntry",
+      "description": "Long-term personal information."
+    },
+    "users/{userId}/medications/{medicationId}": {
+      "schema": "Medication",
+      "description": "Active medication plans."
+    },
+    "users/{userId}/medicationLogs/{logId}": {
+      "schema": "MedicationLog",
+      "description": "History of medication intake."
+    },
+    "users/{userId}/audit {logId}": {
+      "schema": "AuditLog",
+      "description": "Change history for the user."
+    }
+  }
+}

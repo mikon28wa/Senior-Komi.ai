@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gemini Chat Assistant</title>
+  <link rel="stylesheet" href="/index.css">
+</head>
+<body class="bg-[#fcfaf7] text-[#2d2a26] min-h-screen font-sans">
+  <div id="app" class="flex flex-col h-screen max-w-lg mx-auto bg-white shadow-xl overflow-hidden sm:ring-1 sm:ring-black/5">
+    
+    <!-- Top Status Bar -->
+    <header class="bg-[#fff9f2] p-4 border-b border-[#e8dfd5] flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 rounded-full bg-[#5A5A40] flex items-center justify-center text-white shadow-md">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold tracking-tight">Senior-Komi.AI</h1>
+          <p class="text-xs font-semibold text-[#5A5A40] uppercase tracking-widest">Deine Begleitung</p>
+        </div>
+      </div>
+      <button id="emergency-btn" class="bg-[#d9534f] text-white px-4 py-2 rounded-xl font-bold text-sm shadow-lg hover:bg-[#c9302c] active:scale-95 transition-all flex items-center gap-2">
+        <div class="w-2 h-2 rounded-full bg-white animate-pulse"></div>
+        NOTRUF
+      </button>
+    </header>
+
+    <!-- Main Content Area (Tabs) -->
+    <main class="flex-1 overflow-hidden flex flex-col relative">
+      
+      <!-- Dashboard (Default View) -->
+      <div id="dashboard-view" class="flex-1 overflow-y-auto p-6 space-y-6 pb-24">
+        <!-- Daily Greeting -->
+        <section class="space-y-2">
+          <h2 class="text-3xl font-light serif text-[#5A5A40]" id="greeting-text">Guten Tag, wie geht es dir heute?</h2>
+          <p class="text-gray-500">Hier ist eine Übersicht deiner wichtigen Dinge.</p>
+        </section>
+
+        <!-- Status Cards Grid -->
+        <div class="grid grid-cols-2 gap-4">
+          <div class="bg-[#f0f4f8] p-4 rounded-3xl border border-[#d9e2ec] space-y-2">
+            <div class="flex items-center gap-2 text-[#243b53]">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+              <span class="text-xs font-bold uppercase tracking-wider">Puls</span>
+            </div>
+            <div class="text-2xl font-mono font-bold text-[#102a43]"><span id="puls-val">--</span> BPM</div>
+          </div>
+          <div class="bg-[#fff5f5] p-4 rounded-3xl border border-[#feb2b2] space-y-2">
+            <div class="flex items-center gap-2 text-[#c53030]">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>
+              <span class="text-xs font-bold uppercase tracking-wider">Schlaf</span>
+            </div>
+            <div class="text-2xl font-mono font-bold text-[#9b2c2c]"><span id="sleep-val">--</span> Std.</div>
+          </div>
+        </div>
+
+        <!-- Medication List -->
+        <section class="bg-white rounded-3xl border border-[#e8dfd5] overflow-hidden">
+          <div class="bg-[#fff9f2] px-5 py-3 border-b border-[#e8dfd5] flex justify-between items-center">
+            <h3 class="font-bold text-sm uppercase tracking-widest text-[#5A5A40]">Medikamente</h3>
+            <button id="add-med-btn" class="w-6 h-6 rounded-full bg-[#5A5A40] text-white flex items-center justify-center">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+          </div>
+          <ul class="divide-y divide-[#f5f2ed]" id="medication-list">
+             <!-- Medication items will be here -->
+             <li class="p-4 text-center text-gray-400 italic text-sm">Lade Medikamentenplan...</li>
+          </ul>
+        </section>
+
+        <!-- Reminders List -->
+        <section class="bg-white rounded-3xl border border-[#e8dfd5] overflow-hidden">
+          <div class="bg-[#fff9f2] px-5 py-3 border-b border-[#e8dfd5] flex justify-between items-center">
+            <h3 class="font-bold text-sm uppercase tracking-widest text-[#5A5A40]">Erinnerungen</h3>
+            <div class="flex items-center gap-3">
+              <span class="bg-[#5A5A40] text-white text-[10px] px-2 py-0.5 rounded-full font-bold">HEUTE</span>
+              <button id="add-reminder-btn" class="w-6 h-6 rounded-full bg-[#5A5A40] text-white flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </button>
+            </div>
+          </div>
+          <ul class="divide-y divide-[#f5f2ed]" id="reminders-list">
+            <li class="p-4 flex items-center gap-4 group">
+              <div class="w-10 h-10 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
+              </div>
+              <div class="flex-1">
+                <p class="font-bold text-lg">Morgen-Tablette</p>
+                <p class="text-sm text-gray-500">Eingenommen um 08:30</p>
+              </div>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#52c41a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            </li>
+            <li class="p-4 flex items-center gap-4">
+              <div class="w-10 h-10 rounded-2xl bg-orange-50 text-orange-500 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a10 10 0 1 0 10 10 10 10 0 0 0-10-10zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8z"/><path d="M12 6v6l4 2"/></svg>
+              </div>
+              <div class="flex-1">
+                <p class="font-bold text-lg">Blutdruck messen</p>
+                <p class="text-sm text-red-500 font-bold">JETZT FÄLLIG</p>
+              </div>
+              <button class="bg-[#5A5A40] text-white px-3 py-1 rounded-lg text-xs font-bold">ERLEDIGT</button>
+            </li>
+          </ul>
+        </section>
+
+        <!-- Quick Help Advice -->
+        <section class="bg-[#5A5A40] p-6 rounded-3xl text-white space-y-3 relative overflow-hidden">
+          <div class="relative z-10">
+            <h3 class="text-xl font-bold">Wusstest du?</h3>
+            <p class="text-sm opacity-90 leading-relaxed">Ein Glas Wasser am Nachmittag hilft dir, konzentriert und wach zu bleiben.</p>
+          </div>
+          <div class="absolute -right-4 -bottom-4 opacity-10 blur-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+          </div>
+        </section>
+      </div>
+
+      <!-- Chat View (Hidden by default) -->
+      <div id="chat-view" class="hidden flex-1 flex flex-col overflow-hidden pb-24">
+        <header class="px-6 py-3 bg-white border-b border-gray-100 flex items-center justify-between">
+          <span class="text-xs font-bold text-[#5A5A40] uppercase tracking-widest">Senior-Komi Gespräch</span>
+          <button id="clear-chat" class="text-[10px] font-bold text-gray-400 hover:text-red-500 uppercase tracking-widest transition-colors">Löschen</button>
+        </header>
+        <div id="chat-container" class="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth bg-gray-50/50">
+          <div class="flex flex-col items-center justify-center py-12 text-center space-y-4" id="welcome-screen">
+             <div class="w-16 h-16 rounded-full bg-white shadow-sm flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#5A5A40" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+             </div>
+             <h4 class="text-xl font-bold">Hallo, ich bin Senior-Komi!</h4>
+             <p class="text-sm text-gray-500 max-w-xs">Nenne meinen Namen (Senior-Komi), um mich zu aktivieren. Sage z.B.: "Senior-Komi, wie ist mein Blutdruck?"</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Contacts View (Hidden by default) -->
+      <div id="contacts-view" class="hidden flex-1 flex flex-col overflow-hidden pb-24">
+        <header class="px-6 py-4 bg-white border-b border-gray-100 space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-2xl font-bold text-[#5A5A40]">Telefonbuch</h2>
+            <button id="add-contact-btn" class="w-10 h-10 rounded-full bg-[#5A5A40] text-white flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+          </div>
+          <div class="relative">
+             <input type="text" id="contact-search" placeholder="Kontakt suchen..." class="w-full pl-10 pr-4 py-3 bg-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-[#5A5A40]/10 transition-all text-sm">
+             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          </div>
+        </header>
+        <div id="contacts-list" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/30">
+          <!-- Contacts will be injected here -->
+        </div>
+      </div>
+
+      <!-- About View (Hidden by default) -->
+      <div id="about-view" class="hidden flex-1 overflow-y-auto p-6 space-y-8 pb-24 bg-white">
+        <header class="text-center space-y-4">
+          <div class="w-16 h-16 bg-[#5A5A40] rounded-2xl flex items-center justify-center text-white mx-auto shadow-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+          </div>
+          <div class="space-y-1">
+            <h2 class="text-3xl font-light serif text-[#5A5A40]">Senior-Komi.AI</h2>
+            <p class="text-xs uppercase tracking-widest font-bold text-gray-400">Version 1.0 (Beta)</p>
+          </div>
+        </header>
+
+        <section class="space-y-4">
+          <h3 class="text-xl font-bold text-[#2d2a26] border-b border-[#f5f2ed] pb-2">Unsere Mission</h3>
+          <p class="text-gray-600 leading-relaxed italic">
+            "Sicherheit und Selbstbestimmheit für jede Generation."
+          </p>
+          <p class="text-gray-600 leading-relaxed">
+            Senior-Komi.AI wurde entwickelt, um Senioren ein unabhängiges Leben in den eigenen vier Wänden zu ermöglichen. 
+            Durch die Kombination von einfühlsamer KI-Sprachtechnologie und intelligentem Medikamenten-Management schaffen wir eine Brücke zwischen digitaler Innovation und menschlicher Fürsorge.
+          </p>
+        </section>
+
+        <section class="space-y-4">
+          <h3 class="text-xl font-bold text-[#2d2a26] border-b border-[#f5f2ed] pb-2">Kernfunktionen</h3>
+          <div class="grid gap-4">
+            <div class="flex gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+              <div class="text-[#5A5A40] pt-1">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+              </div>
+              <div class="space-y-1">
+                <h4 class="font-bold text-sm">Sprachgesteuerter Begleiter</h4>
+                <p class="text-xs text-gray-500">Keine komplizierten Menüs. Sprechen Sie einfach mit uns.</p>
+              </div>
+            </div>
+            <div class="flex gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+              <div class="text-[#d9534f] pt-1">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+              </div>
+              <div class="space-y-1">
+                <h4 class="font-bold text-sm">Automatisierte Eskalation</h4>
+                <p class="text-xs text-gray-500">Im Notfall werden Angehörige sofort benachrichtigt.</p>
+              </div>
+            </div>
+            <div class="flex gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+              <div class="text-blue-500 pt-1">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
+              </div>
+              <div class="space-y-1">
+                <h4 class="font-bold text-sm">Medikamenten-Logik</h4>
+                <p class="text-xs text-gray-500">Vergessen Sie nie wieder eine Einnahme.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="space-y-4">
+          <h3 class="text-xl font-bold text-[#2d2a26] border-b border-[#f5f2ed] pb-2">Das Team</h3>
+          <p class="text-gray-600 leading-relaxed text-sm">
+            Hinter Senior-Komi.AI steht ein interdisziplinäres Team aus KI-Spezialisten, Designern und Experten aus der Pflegebranche. Unser Ziel ist es, Technologie menschlicher zu machen.
+          </p>
+          <div class="p-4 bg-[#fff9f2] rounded-2xl border border-[#e8dfd5] text-center">
+            <p class="text-[10px] uppercase tracking-widest font-bold text-[#5A5A40]">Kontakt</p>
+            <p class="font-medium">support@senior-komi.ai</p>
+          </div>
+        </section>
+
+        <footer class="pt-8 text-center">
+          <p class="text-gray-400 text-[10px] uppercase tracking-widest">&copy; 2026 Senior-Komi.AI • Alle Rechte vorbehalten</p>
+        </footer>
+      </div>
+
+      <!-- Bottom Tab Navigation -->
+      <nav class="absolute bottom-0 left-0 right-0 glass border-t border-[#e8dfd5] flex items-center justify-around p-3 z-50">
+        <button id="tab-dashboard" class="flex flex-col items-center gap-1 px-4 py-2 rounded-2xl text-[#5A5A40] font-bold transition-all bg-white/50">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          <span class="text-[10px] uppercase tracking-widest">Favoriten</span>
+        </button>
+        <button id="tab-chat" class="flex flex-col items-center gap-1 px-4 py-2 rounded-2xl text-gray-400 font-bold transition-all">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/></svg>
+          <span class="text-[10px] uppercase tracking-widest">Hilfe</span>
+        </button>
+        <button id="tab-contacts" class="flex flex-col items-center gap-1 px-4 py-2 rounded-2xl text-gray-400 font-bold transition-all">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span class="text-[10px] uppercase tracking-widest">Kontakte</span>
+        </button>
+        <button id="tab-about" class="flex flex-col items-center gap-1 px-4 py-2 rounded-2xl text-gray-400 font-bold transition-all">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+          <span class="text-[10px] uppercase tracking-widest">Über</span>
+        </button>
+      </nav>
+
+    </main>
+    
+    <!-- Login View (Overlay) -->
+    <div id="login-overlay" class="fixed inset-0 z-[100] bg-[#f5f2ed] flex flex-col items-center justify-center p-8 text-center space-y-8 hidden">
+      <div class="w-24 h-24 bg-white rounded-[2.5rem] shadow-xl flex items-center justify-center mb-4 scale-110">
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#5A5A40" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </div>
+      <div class="space-y-2">
+        <h1 class="text-4xl font-light serif text-[#5A5A40]">Senior-Komi.AI</h1>
+        <p class="text-gray-500 max-w-xs mx-auto">Dein einfühlsamer Begleiter für den Alltag. Melde dich an, um zu starten.</p>
+      </div>
+      <button id="login-btn" class="w-full max-w-xs bg-[#5A5A40] text-white py-4 rounded-3xl font-bold text-lg shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12.48 10.92v3.28h7.84c-.24 1.84-2.21 5.39-7.84 5.39-4.84 0-8.79-4.01-8.79-8.94s3.95-8.94 8.79-8.94c2.72 0 4.54 1.14 5.58 2.14l2.58-2.49C19.11 1.05 16.03 0 12.48 0 5.86 0 .5 5.37.5 12s5.36 12 11.98 12c6.91 0 11.53-4.82 11.53-11.75 0-.79-.08-1.41-.24-2.02h-11.32v.69z"/></svg>
+        Mit Google anmelden
+      </button>
+      <p class="text-[10px] text-gray-400 uppercase tracking-widest">Sicher & Diskret</p>
+    </div>
+
+    <!-- Global Floating Action / Control -->
+    <footer class="p-6 bg-white border-t border-[#e8dfd5] flex flex-col items-center gap-4">
+      
+      <div id="interaction-bar" class="w-full flex items-center gap-4 transition-all duration-500">
+        <!-- Big Voice Trigger -->
+        <button id="mic-btn" class="flex-1 bg-[#5A5A40] text-white py-6 rounded-3xl flex flex-col items-center justify-center gap-2 shadow-xl hover:bg-[#4a4a34] active:scale-95 transition-all group relative overflow-hidden">
+          <div id="mic-pulse" class="hidden absolute inset-0 bg-white/20 animate-ping"></div>
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="group-hover:scale-110 transition-transform"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+          <span class="text-sm font-black uppercase tracking-[0.2em]" id="mic-status-label">SPRECHEN</span>
+        </button>
+
+        <!-- Toggle Dashboard/Chat (Only visible on Dashboard or Chat appropriately) -->
+        <button id="toggle-chat-btn" class="w-20 h-20 rounded-3xl bg-[#f5f2ed] border border-[#e8dfd5] flex items-center justify-center text-[#5A5A40] shadow-md hover:bg-white transition-all">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/></svg>
+        </button>
+      </div>
+
+      <!-- Hidden Text Input (Accessibility fallback) -->
+      <form id="chat-form" class="w-full hidden opacity-0 transition-all duration-300">
+        <div class="relative">
+          <input type="text" id="chat-input" placeholder="Tippe hier..." class="w-full pl-6 pr-12 py-4 bg-gray-100 border-none rounded-2xl outline-none text-lg">
+          <button type="submit" class="absolute right-3 top-1/2 -translate-y-1/2 text-[#5A5A40]">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+      </form>
+
+      <button id="show-text-input" class="text-[10px] font-bold text-gray-400 uppercase tracking-widest hover:text-gray-600 transition-colors">Tastatur einblenden</button>
+    </footer>
+
+    <!-- Emergency Modal (Hidden) -->
+    <div id="emergency-overlay" class="fixed inset-0 bg-[#d9534f]/90 backdrop-blur-md z-[100] hidden flex flex-col items-center justify-center p-10 text-center text-white">
+       <div class="w-24 h-24 rounded-full bg-white text-[#d9534f] flex items-center justify-center mb-6 animate-bounce shadow-2xl">
+         <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M2 12h20"/></svg>
+       </div>
+       <h2 class="text-4xl font-black mb-2 uppercase">Notruf wird gesendet!</h2>
+       <p class="text-xl mb-12 font-medium">Wir benachrichtigen sofort deine Angehörigen und den Notdienst.</p>
+       <button id="cancel-emergency" class="bg-white text-[#d9534f] px-8 py-4 rounded-3xl font-black text-xl shadow-2xl active:scale-95 transition-all">ABBRECHEN</button>
+    </div>
+
+    <!-- Add Contact Modal -->
+    <div id="add-contact-modal" class="fixed inset-0 z-[110] bg-black/40 backdrop-blur-sm hidden flex flex-col items-center justify-end sm:justify-center p-4">
+      <div class="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl overflow-hidden animate-slide-up">
+        <header class="p-6 border-b border-gray-100 flex items-center justify-between">
+          <h3 class="text-xl font-bold text-[#5A5A40]">Neuer Kontakt</h3>
+          <button id="close-contact-modal" class="text-gray-400 hover:text-gray-600">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </header>
+        <form id="contact-form" class="p-6 space-y-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-1">
+              <label class="text-[10px] uppercase tracking-widest font-bold text-gray-400 ml-2">Name</label>
+              <input type="text" name="name" required class="w-full bg-gray-50 border-none rounded-2xl p-4 text-sm focus:ring-2 focus:ring-[#5A5A40]/10">
+            </div>
+            <div class="space-y-1">
+              <label class="text-[10px] uppercase tracking-widest font-bold text-gray-400 ml-2">Beziehung</label>
+              <input type="text" name="relationship" placeholder="z.B. Sohn" class="w-full bg-gray-50 border-none rounded-2xl p-4 text-sm focus:ring-2 focus:ring-[#5A5A40]/10">
+            </div>
+          </div>
+          <div class="space-y-1">
+            <label class="text-[10px] uppercase tracking-widest font-bold text-gray-400 ml-2">Telefon</label>
+            <input type="tel" name="phone" required class="w-full bg-gray-50 border-none rounded-2xl p-4 text-sm focus:ring-2 focus:ring-[#5A5A40]/10">
+          </div>
+          <div class="space-y-1">
+            <label class="text-[10px] uppercase tracking-widest font-bold text-gray-400 ml-2">Email</label>
+            <input type="email" name="email" class="w-full bg-gray-50 border-none rounded-2xl p-4 text-sm focus:ring-2 focus:ring-[#5A5A40]/10">
+          </div>
+          <div class="space-y-1">
+            <label class="text-[10px] uppercase tracking-widest font-bold text-gray-400 ml-2">Adresse</label>
+            <input type="text" name="address" class="w-full bg-gray-50 border-none rounded-2xl p-4 text-sm focus:ring-2 focus:ring-[#5A5A40]/10">
+          </div>
+          <div class="flex items-center justify-between p-2">
+            <span class="text-sm font-bold text-[#5A5A40]">Notfallkontakt?</span>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" name="isEmergency" class="sr-only peer">
+              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#d9534f]"></div>
+            </label>
+          </div>
+          <button type="submit" class="w-full bg-[#5A5A40] text-white py-4 rounded-2xl font-bold shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all">Kontakt speichern</button>
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "@google/genai": "https://esm.sh/@google/genai@^0.7.0",
+        "marked": "https://esm.sh/marked@^15.0.7"
+      }
+    }
+  </script>
+  <script type="module" src="/index.ts"></script>
+</body>
+</html>

@@ -1,0 +1,133 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    function isValidUser(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 100
+          && data.role in ['senior', 'caregiver', 'relative', 'admin']
+          && (data.get('birthDate', null) == null || (data.birthDate is string && data.birthDate.size() <= 20))
+          && data.createdAt == request.time
+          && data.keys().hasAll(['name', 'role', 'createdAt']) && data.keys().size() <= 10;
+    }
+
+    function isValidContact(data, userId) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 100
+          && data.phone is string && data.phone.size() > 0 && data.phone.size() <= 30
+          && data.ownerId == userId
+          && data.ownerId == request.auth.uid
+          && data.createdAt == request.time
+          && data.keys().hasAll(['name', 'phone', 'ownerId', 'createdAt']) && data.keys().size() <= 15;
+    }
+
+    function isValidReminder(data, userId) {
+      return data.title is string && data.title.size() > 0 && data.title.size() <= 200
+          && data.type in ['medication', 'appointment', 'task']
+          && data.status in ['pending', 'completed', 'skipped', 'overdue']
+          && data.ownerId == userId
+          && data.ownerId == request.auth.uid
+          && data.created_at == request.time
+          && data.keys().hasAll(['title', 'type', 'status', 'ownerId', 'created_at']) && data.keys().size() <= 15;
+    }
+
+    function isValidMedication(data, userId) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 200
+          && data.dosage is string && data.dosage.size() <= 100
+          && data.times is list && data.times.size() > 0 && data.times.size() <= 20
+          && data.ownerId == userId
+          && data.ownerId == request.auth.uid
+          && data.createdAt == request.time
+          && data.keys().hasAll(['name', 'dosage', 'times', 'ownerId', 'createdAt']) && data.keys().size() <= 15;
+    }
+
+    function isValidMedicationLog(data, userId) {
+      return data.medication_id is string && isValidId(data.medication_id)
+          && data.status in ['genommen', 'offen', 'verpasst', 'verschoben']
+          && data.ownerId == userId
+          && data.ownerId == request.auth.uid
+          && data.created_at == request.time
+          && data.keys().hasAll(['medication_id', 'status', 'ownerId', 'created_at']) && data.keys().size() <= 15;
+    }
+
+    // --- User Profiles ---
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && incoming().createdAt == existing().createdAt
+                    && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'birthDate', 'preferences', 'role', 'updatedAt'])
+                    && incoming().updatedAt == request.time;
+      
+      // --- Contacts ---
+      match /contacts/{contactId} {
+        allow list: if isOwner(userId);
+        allow get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(contactId) && isValidContact(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(contactId)
+                      && incoming().ownerId == userId
+                      && incoming().createdAt == existing().createdAt
+                      && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'relationship', 'phone', 'email', 'address', 'notes', 'isFavorite', 'isEmergency', 'updatedAt'])
+                      && incoming().updatedAt == request.time;
+        allow delete: if isOwner(userId) && isValidId(contactId);
+      }
+
+      // --- Reminders ---
+      match /reminders/{reminderId} {
+        allow list: if isOwner(userId);
+        allow get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(reminderId) && isValidReminder(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(reminderId)
+                      && incoming().ownerId == userId
+                      && incoming().created_at == existing().created_at
+                      && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'type', 'priority', 'status', 'scheduled_time', 'repeat_rule', 'updatedAt'])
+                      && (incoming().get('updatedAt', null) == null || incoming().updatedAt == request.time);
+        allow delete: if isOwner(userId) && isValidId(reminderId);
+      }
+
+      // --- Medications ---
+      match /medications/{medicationId} {
+        allow list: if isOwner(userId);
+        allow get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(medicationId) && isValidMedication(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(medicationId)
+                      && incoming().ownerId == userId
+                      && incoming().createdAt == existing().createdAt
+                      && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'dosage', 'frequency', 'times', 'days', 'notes', 'active', 'updatedAt'])
+                      && incoming().updatedAt == request.time;
+        allow delete: if isOwner(userId) && isValidId(medicationId);
+      }
+
+      // --- Medication Logs ---
+      match /medicationLogs/{logId} {
+        allow list: if isOwner(userId);
+        allow get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(logId) && isValidMedicationLog(incoming(), userId);
+        allow update: if isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'taken_time', 'comment']); 
+        allow delete: if isOwner(userId) && isValidId(logId);
+      }
+
+      // --- Memory Entries ---
+      match /memory/{entryId} {
+        allow list: if isOwner(userId);
+        allow get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(entryId) && incoming().ownerId == userId && incoming().created_at == request.time;
+        allow delete: if isOwner(userId);
+      }
+      match /audit/{logId} {
+        allow list: if isOwner(userId);
+        allow get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(logId) && incoming().ownerId == userId && incoming().timestamp == request.time;
+        allow update, delete: if false;
+      }
+    }
+  }
+}

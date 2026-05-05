@@ -1,0 +1,122 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function verified() { return request.auth.token.email_verified == true; }
+
+    function isValidUser(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 100
+          && (data.get('birthDate', null) == null || (data.birthDate is string && data.birthDate.size() <= 20))
+          && data.createdAt == request.time
+          && data.keys().hasAll(['name', 'createdAt']) && data.keys().size() <= 5;
+    }
+
+    function isValidContact(data, userId) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 100
+          && data.phone is string && data.phone.size() > 0 && data.phone.size() <= 30
+          && data.ownerId == userId
+          && data.ownerId == request.auth.uid
+          && data.createdAt == request.time
+          && data.keys().hasAll(['name', 'phone', 'ownerId', 'createdAt']) && data.keys().size() <= 10;
+    }
+
+    function isValidReminder(data, userId) {
+      return data.title is string && data.title.size() > 0 && data.title.size() <= 200
+          && data.category in ['appointment', 'task', 'habit', 'social']
+          && data.ownerId == userId
+          && data.ownerId == request.auth.uid
+          && data.createdAt == request.time
+          && data.keys().hasAll(['title', 'category', 'ownerId', 'createdAt']) && data.keys().size() <= 10;
+    }
+
+    function isValidMedication(data, userId) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 200
+          && data.dosage is string && data.dosage.size() <= 100
+          && data.times is list && data.times.size() > 0 && data.times.size() <= 20
+          && data.ownerId == userId
+          && data.ownerId == request.auth.uid
+          && data.createdAt == request.time
+          && data.keys().hasAll(['name', 'dosage', 'times', 'ownerId', 'createdAt']) && data.keys().size() <= 10;
+    }
+
+    function isValidMedicationLog(data, userId) {
+      return data.medicationId is string && isValidId(data.medicationId)
+          && data.status in ['taken', 'skipped', 'delayed']
+          && data.ownerId == userId
+          && data.ownerId == request.auth.uid
+          && data.createdAt == request.time
+          && data.keys().hasAll(['medicationId', 'status', 'ownerId', 'createdAt']) && data.keys().size() <= 10;
+    }
+
+    // --- User Profiles ---
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && incoming().createdAt == existing().createdAt
+                    && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'birthDate', 'preferences', 'updatedAt'])
+                    && incoming().updatedAt == request.time;
+      
+      // --- Contacts ---
+      match /contacts/{contactId} {
+        allow list, get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(contactId) && isValidContact(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(contactId)
+                      && incoming().ownerId == userId
+                      && incoming().createdAt == existing().createdAt
+                      && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'relationship', 'phone', 'email', 'address', 'notes', 'isFavorite', 'isEmergency', 'updatedAt'])
+                      && incoming().updatedAt == request.time;
+        allow delete: if isOwner(userId) && isValidId(contactId);
+      }
+
+      // --- Reminders ---
+      match /reminders/{reminderId} {
+        allow list, get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(reminderId) && isValidReminder(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(reminderId)
+                      && incoming().ownerId == userId
+                      && incoming().createdAt == existing().createdAt
+                      && incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'category', 'priority', 'status', 'dueDate', 'recurrence', 'updatedAt'])
+                      && incoming().updatedAt == request.time;
+        allow delete: if isOwner(userId) && isValidId(reminderId);
+      }
+
+      // --- Medications ---
+      match /medications/{medicationId} {
+        allow list, get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(medicationId) && isValidMedication(incoming(), userId);
+        allow update: if isOwner(userId) && isValidId(medicationId)
+                      && incoming().ownerId == userId
+                      && incoming().createdAt == existing().createdAt
+                      && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'dosage', 'frequency', 'times', 'notes', 'active', 'updatedAt'])
+                      && incoming().updatedAt == request.time;
+        allow delete: if isOwner(userId) && isValidId(medicationId);
+      }
+
+      // --- Medication Logs ---
+      match /medicationLogs/{logId} {
+        allow list, get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(logId) && isValidMedicationLog(incoming(), userId);
+        // Logs are typically immutable or very restricted
+        allow update: if false; 
+        allow delete: if isOwner(userId) && isValidId(logId);
+      }
+
+      // --- Audit Logs ---
+      match /audit/{logId} {
+        allow list, get: if isOwner(userId);
+        allow create: if isOwner(userId) && isValidId(logId) && incoming().ownerId == userId;
+        allow update, delete: if false;
+      }
+    }
+  }
+}
